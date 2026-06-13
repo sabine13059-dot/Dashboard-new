@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Fritzi · Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #111827;
+    --surface:   #1e2535;
+    --surface2:  #252d40;
+    --border:    #2e3a52;
+    --teal:      #2dd4bf;
+    --teal-dim:  #1a8f80;
+    --amber:     #f59e0b;
+    --rose:      #f43f5e;
+    --blue:      #60a5fa;
+    --text:      #e2e8f0;
+    --muted:     #64748b;
+    --radius:    12px;
+    --radius-sm: 8px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+    padding: 16px;
+  }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .topbar-left h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    color: var(--teal);
+    letter-spacing: -0.3px;
+  }
+  .topbar-left .date {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  .clock {
+    font-size: 28px;
+    font-weight: 300;
+    letter-spacing: -1px;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── SHIFT TIMELINE ── */
+  .section-label {
+    font-family: 'DM Serif Display', serif;
+    font-size: 16px;
+    color: var(--teal);
+    margin-bottom: 12px;
+  }
+
+  .timeline-scroll {
+    overflow-x: auto;
+    padding-bottom: 8px;
+    scrollbar-width: none;
+  }
+  .timeline-scroll::-webkit-scrollbar { display: none; }
+
+  .timeline {
+    display: flex;
+    gap: 8px;
+    min-width: max-content;
+  }
+
+  .day-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    min-width: 72px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s;
+    user-select: none;
+  }
+  .day-card:hover { border-color: var(--teal-dim); }
+  .day-card.today {
+    border-color: var(--teal);
+    background: #1a2f2e;
+  }
+  .day-card .wd {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .day-card .dd {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .day-card.today .dd { color: var(--teal); }
+
+  .shift-pill {
+    display: inline-block;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+  .shift-F { background: #1d3a5f; color: var(--blue); }
+  .shift-S { background: #2d2a1a; color: var(--amber); }
+  .shift-N { background: #2a1a2e; color: #c084fc; }
+  .shift-FR { background: #1a2e1a; color: #4ade80; }
+  .shift-empty { color: var(--muted); font-size: 11px; }
+
+  /* ── MAIN GRID ── */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 20px;
+  }
+
+  @media (min-width: 900px) {
+    .grid { grid-template-columns: 1fr 1fr 1fr; }
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+  }
+  .card.full { grid-column: 1 / -1; }
+
+  .card-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+
+  /* ── HABITS ── */
+  .habit-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .habit-row:last-child { border-bottom: none; }
+
+  .habit-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+  }
+  .habit-icon { font-size: 16px; }
+
+  .habit-dots {
+    display: flex;
+    gap: 5px;
+  }
+  .dot {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+  }
+  .dot.done { background: var(--teal); border-color: var(--teal); }
+  .dot.done::after { content: '✓'; color: #0d1f1e; font-weight: 700; }
+
+  /* ── HEALTH METRICS ── */
+  .metric-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .metric-box {
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    text-align: center;
+  }
+  .metric-box .val {
+    font-size: 24px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .metric-box .lbl {
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .metric-box .unit {
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 400;
+  }
+  .val-teal { color: var(--teal); }
+  .val-amber { color: var(--amber); }
+  .val-rose  { color: var(--rose); }
+  .val-blue  { color: var(--blue); }
+
+  /* ── ENERGY DOTS ── */
+  .energy-dots {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    margin: 4px 0;
+  }
+  .energy-dot {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s;
+  }
+  .energy-dot.active {
+    background: var(--amber);
+    border-color: var(--amber);
+  }
+  .energy-dot:hover { border-color: var(--amber); }
+
+  /* ── NOTES ── */
+  .note-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    padding: 10px 12px;
+    resize: vertical;
+    min-height: 80px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .note-input:focus { border-color: var(--teal-dim); }
+  .note-input::placeholder { color: var(--muted); }
+
+  /* ── SHIFT LEGEND ── */
+  .legend {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* ── WEEKLY GOALS BAR ── */
+  .goal-row {
+    margin-bottom: 12px;
+  }
+  .goal-row:last-child { margin-bottom: 0; }
+  .goal-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    margin-bottom: 5px;
+  }
+  .goal-pct { color: var(--muted); }
+  .progress-track {
+    height: 6px;
+    background: var(--surface2);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.4s ease;
+  }
+
+  /* ── SHIFT EDITOR MODAL ── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+  }
+  .modal-overlay.hidden { display: none; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    width: 100%;
+    max-width: 320px;
+  }
+  .modal h3 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 18px;
+    margin-bottom: 16px;
+    color: var(--teal);
+  }
+  .shift-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .shift-btn {
+    padding: 10px;
+    border-radius: var(--radius-sm);
+    border: 1.5px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.12s, background 0.12s;
+  }
+  .shift-btn:hover { border-color: var(--teal-dim); background: #1a2d2c; }
+  .shift-btn.active { border-color: var(--teal); background: #1a2f2e; color: var(--teal); }
+  .modal-close {
+    width: 100%;
+    padding: 10px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--muted);
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: color 0.12s;
+  }
+  .modal-close:hover { color: var(--text); }
+
+  /* ── BACKUP ── */
+  .backup-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .backup-btn {
+    flex: 1;
+    padding: 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: center;
+    transition: border-color 0.15s;
+  }
+  .backup-btn:hover { border-color: var(--teal-dim); }
+  .backup-hint {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* ── SECTION SPACING ── */
+  section { margin-bottom: 20px; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <h1>Fritzi</h1>
+    <div class="date" id="dateStr"></div>
+  </div>
+  <div class="clock" id="clock"></div>
+</div>
+
+<!-- SHIFT TIMELINE -->
+<section>
+  <div class="section-label">Dienste</div>
+  <div class="timeline-scroll">
+    <div class="timeline" id="timeline"></div>
+  </div>
+  <div class="legend">
+    <div class="legend-item"><span class="shift-pill shift-F">F</span> Früh</div>
+    <div class="legend-item"><span class="shift-pill shift-S">S</span> Spät</div>
+    <div class="legend-item"><span class="shift-pill shift-N">N</span> Nacht</div>
+    <div class="legend-item"><span class="shift-pill shift-FR">FR</span> Frei</div>
+  </div>
+</section>
+
+<!-- MAIN GRID -->
+<div class="grid">
+
+  <!-- HABITS -->
+  <div class="card">
+    <div class="card-title">Habits · diese Woche</div>
+    <div id="habitList"></div>
+  </div>
+
+  <!-- HEALTH METRICS -->
+  <div class="card">
+    <div class="card-title">Gesundheit</div>
+    <div class="metric-grid" id="metrics"></div>
+  </div>
+
+  <!-- WEEKLY GOALS -->
+  <div class="card">
+    <div class="card-title">Wochenziele</div>
+    <div id="goals"></div>
+  </div>
+
+  <!-- NOTES -->
+  <div class="card full">
+    <div class="card-title">Schichtnotiz</div>
+    <textarea class="note-input" id="noteInput" placeholder="Kurze Notiz nach dem Dienst …"></textarea>
+  </div>
+
+  <!-- BACKUP -->
+  <div class="card full">
+    <div class="card-title">Datensicherung</div>
+    <div class="backup-row">
+      <button class="backup-btn" id="exportBtn">&#8595; Export (JSON)</button>
+      <label class="backup-btn" for="importFile">&#8593; Import (JSON)</label>
+      <input type="file" id="importFile" accept=".json" style="display:none">
+    </div>
+    <div class="backup-hint">Exportiere regelmaessig — Android kann den Cache leeren.</div>
+  </div>
+
+</div>
+
+<!-- SHIFT EDITOR MODAL -->
+<div class="modal-overlay hidden" id="modalOverlay">
+  <div class="modal">
+    <h3 id="modalTitle">Dienst eintragen</h3>
+    <div class="shift-options" id="shiftOptions"></div>
+    <button class="modal-close" id="modalClose">Schließen</button>
+  </div>
+</div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────────────────────
+const state = {
+  shifts: JSON.parse(localStorage.getItem('shifts') || '{}'),
+  habits: JSON.parse(localStorage.getItem('habits') || JSON.stringify({
+    '🚴 Gravelbike':  [false,false,false,false,false,false,false],
+    '📸 Foto':        [false,false,false,false,false,false,false],
+    '💊 Vitamine':    [false,false,false,false,false,false,false],
+    '📖 Lernen':      [false,false,false,false,false,false,false],
+    '🎮 Pause':       [false,false,false,false,false,false,false],
+  })),
+  metrics: JSON.parse(localStorage.getItem('metrics') || JSON.stringify({
+    schritte: 0, schlaf: 0, puls: 0, energie: 0
+  })),
+  goals: JSON.parse(localStorage.getItem('goals') || JSON.stringify([
+    { label: 'Radfahren', current: 0, target: 3, unit: 'Ausfahrten' },
+    { label: 'Fotos bearbeiten', current: 0, target: 5, unit: 'Bilder' },
+    { label: 'Fortbildung', current: 0, target: 2, unit: 'h' },
+  ])),
+};
+
+function save() {
+  localStorage.setItem('shifts', JSON.stringify(state.shifts));
+  localStorage.setItem('habits', JSON.stringify(state.habits));
+  localStorage.setItem('metrics', JSON.stringify(state.metrics));
+  localStorage.setItem('goals', JSON.stringify(state.goals));
+}
+
+// ── CLOCK & DATE ───────────────────────────────────────────────────────────
+const WD = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+const MON = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+
+function tick() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.getHours().toString().padStart(2,'0') + ':' +
+    now.getMinutes().toString().padStart(2,'0');
+  document.getElementById('dateStr').textContent =
+    WD[now.getDay()] + ', ' + now.getDate() + '. ' + MON[now.getMonth()] + ' ' + now.getFullYear();
+}
+tick();
+setInterval(tick, 10000);
+
+// ── TIMELINE ──────────────────────────────────────────────────────────────
+const SHIFTS = [
+  { key: 'F',  label: 'Früh',  cls: 'shift-F' },
+  { key: 'S',  label: 'Spät',  cls: 'shift-S' },
+  { key: 'N',  label: 'Nacht', cls: 'shift-N' },
+  { key: 'FR', label: 'Frei',  cls: 'shift-FR' },
+];
+
+let editingDateKey = null;
+
+function dateKey(d) {
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function buildTimeline() {
+  const tl = document.getElementById('timeline');
+  tl.innerHTML = '';
+  const today = new Date();
+  const todayKey = dateKey(today);
+
+  for (let i = -3; i <= 13; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    const dk = dateKey(d);
+    const shift = state.shifts[dk];
+
+    const card = document.createElement('div');
+    card.className = 'day-card' + (dk === todayKey ? ' today' : '');
+
+    const wd = document.createElement('div');
+    wd.className = 'wd';
+    wd.textContent = WD[d.getDay()];
+
+    const dd = document.createElement('div');
+    dd.className = 'dd';
+    dd.textContent = d.getDate();
+
+    const pill = document.createElement('span');
+    if (shift) {
+      const s = SHIFTS.find(x => x.key === shift);
+      pill.className = 'shift-pill ' + s.cls;
+      pill.textContent = s.key;
+    } else {
+      pill.className = 'shift-empty';
+      pill.textContent = '–';
+    }
+
+    card.appendChild(wd);
+    card.appendChild(dd);
+    card.appendChild(pill);
+
+    card.addEventListener('click', () => openModal(dk, d));
+    tl.appendChild(card);
+  }
+
+  // scroll today into view
+  setTimeout(() => {
+    const todayEl = tl.querySelector('.today');
+    if (todayEl) todayEl.scrollIntoView({ behavior: 'smooth', inline: 'center' });
+  }, 100);
+}
+
+function openModal(dk, d) {
+  editingDateKey = dk;
+  document.getElementById('modalTitle').textContent =
+    WD[d.getDay()] + ', ' + d.getDate() + '. ' + MON[d.getMonth()];
+  const opts = document.getElementById('shiftOptions');
+  opts.innerHTML = '';
+  SHIFTS.forEach(s => {
+    const b = document.createElement('button');
+    b.className = 'shift-btn' + (state.shifts[dk] === s.key ? ' active' : '');
+    b.textContent = s.label;
+    b.addEventListener('click', () => {
+      state.shifts[dk] = s.key;
+      save();
+      buildTimeline();
+      document.querySelectorAll('.shift-btn').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+    });
+    opts.appendChild(b);
+  });
+  // Clear option
+  const clr = document.createElement('button');
+  clr.className = 'shift-btn';
+  clr.style.gridColumn = '1 / -1';
+  clr.textContent = 'Eintrag löschen';
+  clr.addEventListener('click', () => {
+    delete state.shifts[editingDateKey];
+    save();
+    buildTimeline();
+    document.getElementById('modalOverlay').classList.add('hidden');
+  });
+  opts.appendChild(clr);
+  document.getElementById('modalOverlay').classList.remove('hidden');
+}
+
+document.getElementById('modalClose').addEventListener('click', () => {
+  document.getElementById('modalOverlay').classList.add('hidden');
+});
+document.getElementById('modalOverlay').addEventListener('click', e => {
+  if (e.target === e.currentTarget) e.currentTarget.classList.add('hidden');
+});
+
+buildTimeline();
+
+// ── HABITS ────────────────────────────────────────────────────────────────
+function buildHabits() {
+  const list = document.getElementById('habitList');
+  list.innerHTML = '';
+  const today = new Date().getDay(); // 0=Sun
+
+  Object.entries(state.habits).forEach(([name, days]) => {
+    const row = document.createElement('div');
+    row.className = 'habit-row';
+
+    const lbl = document.createElement('div');
+    lbl.className = 'habit-name';
+    lbl.textContent = name;
+
+    const dots = document.createElement('div');
+    dots.className = 'habit-dots';
+
+    days.forEach((done, i) => {
+      const dot = document.createElement('div');
+      dot.className = 'dot' + (done ? ' done' : '');
+      dot.title = WD[i];
+      dot.addEventListener('click', () => {
+        state.habits[name][i] = !state.habits[name][i];
+        save();
+        buildHabits();
+      });
+      dots.appendChild(dot);
+    });
+
+    row.appendChild(lbl);
+    row.appendChild(dots);
+    list.appendChild(row);
+  });
+}
+buildHabits();
+
+// ── HEALTH METRICS ────────────────────────────────────────────────────────
+const metricDefs = [
+  { key: 'schritte', label: 'Schritte',   unit: 'Tagesziel: 7.000+', cls: 'val-teal',  type: 'number', hint: 'Schritte heute (z.B. 8500)' },
+  { key: 'schlaf',   label: 'Schlaf',     unit: 'h · Ziel: 7–9 h',   cls: 'val-blue',  type: 'number', hint: 'Schlafdauer in Stunden (z.B. 7.5)' },
+  { key: 'puls',     label: 'Ruhepuls',   unit: 'bpm morgens',        cls: 'val-rose',  type: 'number', hint: 'Ruhepuls in bpm (z.B. 58)' },
+  { key: 'energie',  label: 'Energie',    unit: '1 = erschöpft · 5 = fit', cls: 'val-amber', type: 'scale', hint: 'Subjektive Energie heute (1–5)' },
+];
+
+function buildMetrics() {
+  const grid = document.getElementById('metrics');
+  grid.innerHTML = '';
+  metricDefs.forEach(m => {
+    const box = document.createElement('div');
+    box.className = 'metric-box';
+
+    if (m.type === 'scale') {
+      // Energie: 1–5 dot picker
+      const cur = state.metrics[m.key] || 0;
+      let dotsHtml = '<div class="energy-dots">';
+      for (let i = 1; i <= 5; i++) {
+        dotsHtml += `<span class="energy-dot${i <= cur ? ' active' : ''}" data-val="${i}"></span>`;
+      }
+      dotsHtml += '</div>';
+      box.innerHTML = `
+        <div class="lbl" style="margin-bottom:8px">${m.label}</div>
+        ${dotsHtml}
+        <div class="unit" style="margin-top:6px">${cur ? cur + ' / 5' : '–'}</div>
+      `;
+      box.querySelectorAll('.energy-dot').forEach(dot => {
+        dot.addEventListener('click', e => {
+          e.stopPropagation();
+          state.metrics[m.key] = +dot.dataset.val;
+          save();
+          buildMetrics();
+        });
+      });
+    } else {
+      const val = state.metrics[m.key];
+      let displayVal = val || '–';
+      // colour-code ruhepuls: >80 rose, 60-80 amber, <60 teal
+      let cls = m.cls;
+      if (m.key === 'puls' && val) {
+        cls = val < 60 ? 'val-teal' : val <= 80 ? 'val-amber' : 'val-rose';
+      }
+      // colour-code schritte: <5000 rose, 5000-7000 amber, >=7000 teal
+      if (m.key === 'schritte' && val) {
+        cls = val >= 7000 ? 'val-teal' : val >= 5000 ? 'val-amber' : 'val-rose';
+      }
+      // colour-code schlaf: <6 rose, 6-7 amber, >=7 teal
+      if (m.key === 'schlaf' && val) {
+        cls = val >= 7 ? 'val-teal' : val >= 6 ? 'val-amber' : 'val-rose';
+      }
+      box.innerHTML = `
+        <div class="val ${cls}">${displayVal}</div>
+        <div class="lbl">${m.label}</div>
+        <div class="unit">${m.unit}</div>
+      `;
+      box.addEventListener('click', () => {
+        const v = prompt(m.hint, state.metrics[m.key] || '');
+        if (v !== null && v.trim() !== '' && !isNaN(+v)) {
+          state.metrics[m.key] = +v;
+          save();
+          buildMetrics();
+        }
+      });
+    }
+    grid.appendChild(box);
+  });
+}
+buildMetrics();
+
+// ── WEEKLY GOALS ──────────────────────────────────────────────────────────
+function buildGoals() {
+  const cont = document.getElementById('goals');
+  cont.innerHTML = '';
+  state.goals.forEach((g, i) => {
+    const pct = Math.min(100, Math.round((g.current / g.target) * 100));
+    const colors = ['var(--teal)', 'var(--blue)', 'var(--amber)'];
+
+    const row = document.createElement('div');
+    row.className = 'goal-row';
+    row.innerHTML = `
+      <div class="goal-header">
+        <span>${g.label}</span>
+        <span class="goal-pct">${g.current} / ${g.target} ${g.unit}</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" style="width:${pct}%; background:${colors[i % colors.length]}"></div>
+      </div>
+    `;
+    row.addEventListener('click', () => {
+      const v = prompt(`${g.label} (aktueller Wert):`, g.current);
+      if (v !== null && !isNaN(+v)) {
+        state.goals[i].current = +v;
+        save();
+        buildGoals();
+      }
+    });
+    cont.appendChild(row);
+  });
+}
+buildGoals();
+
+// ── NOTES ─────────────────────────────────────────────────────────────────
+const noteInput = document.getElementById('noteInput');
+noteInput.value = localStorage.getItem('note') || '';
+noteInput.addEventListener('input', () => {
+  localStorage.setItem('note', noteInput.value);
+});
+
+// ── EXPORT / IMPORT ───────────────────────────────────────────────────────
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const data = {
+    shifts:  state.shifts,
+    habits:  state.habits,
+    metrics: state.metrics,
+    goals:   state.goals,
+    note:    localStorage.getItem('note') || '',
+    exported: new Date().toISOString()
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const d = new Date();
+  a.download = 'dashboard-' + d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0') + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById('importFile').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (data.shifts)  { state.shifts  = data.shifts;  localStorage.setItem('shifts',  JSON.stringify(data.shifts)); }
+      if (data.habits)  { state.habits  = data.habits;  localStorage.setItem('habits',  JSON.stringify(data.habits)); }
+      if (data.metrics) { state.metrics = data.metrics; localStorage.setItem('metrics', JSON.stringify(data.metrics)); }
+      if (data.goals)   { state.goals   = data.goals;   localStorage.setItem('goals',   JSON.stringify(data.goals)); }
+      if (data.note !== undefined) { localStorage.setItem('note', data.note); document.getElementById('noteInput').value = data.note; }
+      buildTimeline();
+      buildHabits();
+      buildMetrics();
+      buildGoals();
+      alert('Import erfolgreich.');
+    } catch (err) {
+      alert('Fehler beim Import: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+</script>
+</body>
+</html>
